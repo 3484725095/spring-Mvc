@@ -2,10 +2,14 @@ package com.nf.mvc.util;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 
 public abstract class ObjectUtils {
     private static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
-    public static Object[] toObjectArray( Object source) {
+
+    public static Object[] toObjectArray(Object source) {
         if (source instanceof Object[]) {
             return (Object[]) source;
         }
@@ -27,7 +31,7 @@ public abstract class ObjectUtils {
         return newArray;
     }
 
-    public static boolean nullSafeEquals( Object o1, Object o2) {
+    public static boolean nullSafeEquals(Object o1, Object o2) {
         if (o1 == o2) {
             return true;
         }
@@ -71,6 +75,32 @@ public abstract class ObjectUtils {
         if (o1 instanceof short[] && o2 instanceof short[]) {
             return Arrays.equals((short[]) o1, (short[]) o2);
         }
+        return false;
+    }
+
+
+    public static boolean isEmpty(Object obj) {
+        if (obj == null) {
+            return true;
+        }
+
+        if (obj instanceof Optional) {
+            return !((Optional<?>) obj).isPresent();
+        }
+        if (obj instanceof CharSequence) {
+            return ((CharSequence) obj).length() == 0;
+        }
+        if (obj.getClass().isArray()) {
+            return Array.getLength(obj) == 0;
+        }
+        if (obj instanceof Collection) {
+            return ((Collection<?>) obj).isEmpty();
+        }
+        if (obj instanceof Map) {
+            return ((Map<?, ?>) obj).isEmpty();
+        }
+
+        // else
         return false;
     }
 }

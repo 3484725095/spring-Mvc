@@ -1,28 +1,23 @@
 package com.nf.mvc.adapters;
 
 import com.nf.mvc.HandlerAdapter;
-import com.nf.mvc.MethodArgumentResolver;
 import com.nf.mvc.MvcContext;
 import com.nf.mvc.ViewResult;
+import com.nf.mvc.arguments.HandlerMethodArgumentResolverComposite;
 import com.nf.mvc.arguments.MethodParameter;
 import com.nf.mvc.handler.HandlerMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
-import java.util.List;
 
 import static com.nf.mvc.ViewResult.handleViewResult;
 
 public class RequestMappingHandlerAdapter implements HandlerAdapter {
-    private List<MethodArgumentResolver> argumentResolvers;
+    private HandlerMethodArgumentResolverComposite resolvers = new HandlerMethodArgumentResolverComposite();
 
     public RequestMappingHandlerAdapter() {
-        this(MvcContext.getMvcContext().getArgumentResolvers());
-    }
-
-    public RequestMappingHandlerAdapter(List<MethodArgumentResolver> argumentResolvers) {
-        this.argumentResolvers = argumentResolvers;
+        resolvers.addResolvers(MvcContext.getMvcContext().getArgumentResolvers());
     }
 
     @Override
@@ -42,10 +37,8 @@ public class RequestMappingHandlerAdapter implements HandlerAdapter {
     }
 
     private Object resolveArgument(MethodParameter parameter, HttpServletRequest req) throws Exception {
-        for (MethodArgumentResolver resolver : argumentResolvers) {
-            if (resolver.supports(parameter)) {
-                return resolver.resolveArgument(parameter, req);
-            }
+        if (resolvers.supports(parameter)) {
+            return resolvers.resolveArgument(parameter,req);
         }
         return null;
     }

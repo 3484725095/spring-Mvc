@@ -5,6 +5,7 @@ import javassist.bytecode.CodeAttribute;
 import javassist.bytecode.LocalVariableAttribute;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.net.URI;
 import java.net.URL;
 import java.time.LocalDate;
@@ -55,6 +56,7 @@ public abstract class ReflectionUtils {
         return setterMethods;
     }
 
+    @Deprecated
     public static List<String> getParamNamesWithParamType(Class<?> clazz, String methodName) {
         List<String> paramNames = new ArrayList<>();
         ClassPool pool = ClassPool.getDefault();
@@ -83,8 +85,22 @@ public abstract class ReflectionUtils {
         }
     }
 
+    @Deprecated
     public static List<String> getParamNames(Class<?> clazz, String methodName) {
         return getParamNamesWithParamType(clazz, methodName);
+    }
+
+    public static List<String> getParameterNames(Method method) {
+        Parameter[] parameters = method.getParameters();
+        List<String> parameterNames = new ArrayList<>();
+        for (Parameter parameter : parameters) {
+            if (!parameter.isNamePresent()) {
+                throw new IllegalArgumentException("编译的时候需要指定-parameters选项");
+            }
+            String parameterName = parameter.getName();
+            parameterNames.add(parameterName);
+        }
+        return parameterNames;
     }
 
     /**

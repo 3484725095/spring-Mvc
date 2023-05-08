@@ -11,6 +11,7 @@ import com.nf.mvc.support.HttpHeaders;
 import com.nf.mvc.support.HttpMethod;
 import com.nf.mvc.util.CorsUtils;
 import com.nf.mvc.util.ScanUtils;
+import com.nf.mvc.util.StringUtils;
 import io.github.classgraph.ScanResult;
 
 import javax.servlet.ServletConfig;
@@ -19,6 +20,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,20 +28,26 @@ import java.util.List;
  * 总控制器，负责分发任务，找到相应的处理器
  */
 public class DispatcherServlet extends HttpServlet {
-    private static final String COMPONENT_SCAN = "componentScan";
+    private static final String BASE_PACKAGE = "base-package";
     private List<HandlerMapping> handlerMappings = new ArrayList<>();
     private List<HandlerAdapter> handlerAdapters = new ArrayList<>();
     private List<MethodArgumentResolver> argumentResolvers = new ArrayList<>();
     private List<HandlerExceptionResolver> exceptionResolvers = new ArrayList<>();
+    private final CorsConfiguration corsConfiguration = new CorsConfiguration();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         //通过xml参数获取包名
-        String getPackage = getScanPackage(config);
+        String getPackage = getBasePackage(config);
         //通过包名获取查询的结果
         ScanResult scanResult = ScanUtils.scan(getPackage);
         //通过初始化获取每个类对应的结果mapping
         initMvcContext(scanResult);
+        initMvc();
+        configMvc();
+    }
+
+    private void initMvc() {
         initArgumentResolvers();
         //获取到所有的mapping进行初始化，只执行一次
         initHandlerMapping();
@@ -47,6 +55,80 @@ public class DispatcherServlet extends HttpServlet {
         initHandlerAdapter();
         initExceptionResolvers();
     }
+
+    private void configMvc() {
+        configArgumentResolvers();
+        configHandlerMappings();
+        configHandlerAdapters();
+        configExceptionResolvers();
+        configGlobalCors();
+    }
+
+    public void configGlobalCors() {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer mvcConfigurer = mvcContext.getWebMvcConfigurers();
+        mvcConfigurer.configureCors(corsConfiguration);
+    }
+
+    private void configExceptionResolvers() {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer webMvcConfigurer = mvcContext.getWebMvcConfigurers();
+
+        for (HandlerExceptionResolver exceptionResolver : mvcContext.getExceptionResolvers()) {
+            webMvcConfigurer.configureExceptionResolver(exceptionResolver);
+        }
+//        configure(MvcContext.getMvcContext().getExceptionResolvers(), HandlerExceptionResolver.class);
+    }
+
+    private void configHandlerAdapters() {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer webMvcConfigurer = mvcContext.getWebMvcConfigurers();
+
+        for (HandlerAdapter handlerAdapter : mvcContext.getHandlerAdapters()) {
+            webMvcConfigurer.configureHandlerAdapter(handlerAdapter);
+        }
+//        configure(MvcContext.getMvcContext().getHandlerAdapters(), HandlerAdapter.class);
+    }
+
+    private void configArgumentResolvers() {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer webMvcConfigurers = mvcContext.getWebMvcConfigurers();
+
+        for (MethodArgumentResolver argumentResolver : mvcContext.getArgumentResolvers()) {
+            webMvcConfigurers.configureArgumentResolver(argumentResolver);
+        }
+//        configure(MvcContext.getMvcContext().getArgumentResolvers(), MethodArgumentResolver.class);
+    }
+
+    private void configHandlerMappings() {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer webMvcConfigurers = mvcContext.getWebMvcConfigurers();
+
+        List<HandlerMapping> handlerMappings = mvcContext.getHandlerMappings();
+        for (HandlerMapping handlerMapping : handlerMappings) {
+            webMvcConfigurers.configureHandlerMapping(handlerMapping);
+        }
+//        configure(MvcContext.getMvcContext().getHandlerMappings(), HandlerMapping.class);
+    }
+
+    /**
+     * 这个是优化后的，在作者层面上可能会比较方便，在用户的层面用多个就不方便和初始的差不多
+     *
+     * @param configs：要配置的参数集合
+     * @param clz：接口的实现类
+     * @param <T>
+     */
+    @Deprecated
+    private <T> void configure(List<T> configs, Class<T> clz) {
+        MvcContext mvcContext = MvcContext.getMvcContext();
+        WebMvcConfigurer webMvcConfigurers = mvcContext.getWebMvcConfigurers();
+        for (T config : configs) {
+            if (clz.isInstance(config)) {
+                webMvcConfigurers.configureHandler(config);
+            }
+        }
+    }
+
 
     private void initMvcContext(ScanResult scanResult) {
         MvcContext.getMvcContext().config(scanResult);
@@ -162,8 +244,13 @@ public class DispatcherServlet extends HttpServlet {
         return resolvers;
     }
 
-    private static String getScanPackage(ServletConfig config) {
-        return config.getInitParameter(COMPONENT_SCAN);
+    private String getBasePackage(ServletConfig config) {
+        String pkg = config.getInitParameter(BASE_PACKAGE);
+
+        if (pkg == null || pkg.isEmpty()) {
+            throw new IllegalStateException("必须指定扫描的包，此包是控制器或者是其它扩展组件所在的包---");
+        }
+        return pkg;
     }
 
 
@@ -178,10 +265,12 @@ public class DispatcherServlet extends HttpServlet {
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setEncoding(req, resp);
-        processCors(req, resp, new CorsConfiguration());
-        /*如果是预检请求需要return，以便及时响应预检请求，以便处理后续的真正请求*/
-        if (CorsUtils.isPreFlightRequest(req)) {
-            return;
+        if (CorsUtils.isCorsRequest(req)) {
+            processCors(req, resp, corsConfiguration);
+            /*如果是预检请求需要return，以便及时响应预检请求，以便处理后续的真正请求*/
+            if (CorsUtils.isPreFlightRequest(req)) {
+                return;
+            }
         }
         doService(req, resp);
     }
@@ -298,24 +387,37 @@ public class DispatcherServlet extends HttpServlet {
      * @param configuration
      */
     protected void processCors(HttpServletRequest req, HttpServletResponse resp, CorsConfiguration configuration) {
-        // 解决跨域请求问题
-        String origin = req.getHeader(HttpHeaders.ORIGIN);
 
-        // 允许指定域访问跨域资源
-        resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, origin);
-        // 允许客户端携带跨域cookie，此时origin值不能为“*”，只能为指定单一域名
-        resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+        String requestOrigin = req.getHeader(HttpHeaders.ORIGIN);
+        String allowOrigin = configuration.checkOrigin(requestOrigin);
+        if (allowOrigin == null) {
+            rejectRequest(resp);
+            return;
+        }
+        //设置允许跨域请求的源
+        resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, allowOrigin);
+        resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, Boolean.toString(configuration.getAllowCredentials()));
 
         if (HttpMethod.OPTIONS.matches(req.getMethod())) {
-            String allowMethod = req.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD);
-            String allowHeaders = req.getHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS);
             // 浏览器缓存预检请求结果时间,单位:秒
-            resp.setHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, "86400");
-            // 允许浏览器在预检请求成功之后发送的实际请求方法名
-            resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, allowMethod);
+            resp.setHeader(HttpHeaders.ACCESS_CONTROL_MAX_AGE, Long.toString(configuration.getMaxAge()));
+            // 允许浏览器在预检请求成功之后发送的实际请求方法名，
+            // 在MDN中只说要用逗号分隔即可，https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Access-Control-Allow-Methods
+            // 但其举的例子是逗号后有一个空格，spring的HttpHeaders类的toCommaDelimitedString也是这样的
+            resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, StringUtils.toCommaDelimitedString(configuration.getAllowedMethods(), ", "));
             // 允许浏览器发送的请求消息头
-            resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, allowHeaders);
+            resp.setHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, StringUtils.toCommaDelimitedString(configuration.getAllowedHeaders(), ", "));
+
         }
     }
 
+    protected void rejectRequest(HttpServletResponse response) {
+        try {
+            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+            response.getOutputStream().write("Invalid CORS request".getBytes(StandardCharsets.UTF_8));
+            response.flushBuffer();
+        } catch (IOException e) {
+            throw new IllegalStateException("跨域处理失败");
+        }
+    }
 }

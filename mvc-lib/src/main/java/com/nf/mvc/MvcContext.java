@@ -19,6 +19,7 @@ public class MvcContext {
     private List<HandlerAdapter> handlerAdapters = new ArrayList<>();
     private List<MethodArgumentResolver> argumentResolvers = new ArrayList<>();
     private List<HandlerExceptionResolver> exceptionResolvers = new ArrayList<>();
+    private List<WebMvcConfigurer> webMvcConfigurers = new ArrayList<>();
     private List<Class<?>> allScanedClasses = new ArrayList<>();
 
 
@@ -72,6 +73,7 @@ public class MvcContext {
         resolveClasses(scanedClass, MethodArgumentResolver.class, customArgumentResolvers);
         resolveClasses(scanedClass, HandlerExceptionResolver.class, customExceptionResolvers);
         resolveClasses(scanedClass, HandlerInterceptor.class, customInterceptors);
+        resolveClasses(scanedClass, WebMvcConfigurer.class, webMvcConfigurers);
     }
 
     private <T> void resolveClasses(Class<?> scannedClass, Class<? extends T> mvcInf, List<T> list) {
@@ -120,6 +122,17 @@ public class MvcContext {
     public List<HandlerInterceptor> getCustomInterceptors() {
         Collections.sort(customInterceptors, orderComparator);
         return Collections.unmodifiableList(customInterceptors);
+    }
+
+    public WebMvcConfigurer getWebMvcConfigurers() {
+        if (webMvcConfigurers.size() > 1) {
+            throw new IllegalStateException("配置器应该只写一个");
+        }
+        if(webMvcConfigurers.size()==0){
+            return new WebMvcConfigurer(){};
+        }
+
+        return webMvcConfigurers.get(0);
     }
 
 

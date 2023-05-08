@@ -1,5 +1,7 @@
 package com.nf.mvc.mappings;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.nf.mvc.HandlerExecutionChain;
 import com.nf.mvc.HandlerInterceptor;
 import com.nf.mvc.HandlerMapping;
@@ -15,9 +17,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.sun.corba.se.impl.util.RepositoryId.cache;
+
 public class NameAndRequestMapping implements HandlerMapping {
     private Map<String, HandlerMethod> handlers = new HashMap<>();
     private static final String SUFFIX = "Controller";
+
+    Cache<String, HandlerExecutionChain> cache = Caffeine.newBuilder()
+            .initialCapacity(10)
+            .maximumSize(100)
+            .build();
+
 
     public NameAndRequestMapping() {
         resolveHandlers();
@@ -46,7 +56,13 @@ public class NameAndRequestMapping implements HandlerMapping {
     @Override
     public HandlerExecutionChain getHandler(HttpServletRequest req) throws ServletException {
         String uri = getUri(req);
-        Object handler = handlers.get(uri);
-        return handler == null ? null : new HandlerExecutionChain(handler, MvcContext.getMvcContext().getCustomInterceptors());
+        HandlerExecutionChain chain = cache.get(uri, k -> {
+            HandlerMethod handler = handlers.get(uri);
+            if (handler != null) {
+                return new HandlerExecutionChain(handler, getInterceptors(req));
+            }
+            return null;
+        });
+        return chain;
     }
 }

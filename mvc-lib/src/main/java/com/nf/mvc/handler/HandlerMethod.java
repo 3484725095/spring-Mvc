@@ -40,7 +40,7 @@ public class HandlerMethod extends HandlerClass {
     }
 
     private void initMethodParameters() {
-        List<String> paramNames = ReflectionUtils.getParamNames(getHandlerClass(), getMethodName());
+        List<String> paramNames = ReflectionUtils.getParameterNames(handlerMethod);
         Parameter[] parameters = handlerMethod.getParameters();
         int parameterCount = handlerMethod.getParameterCount();
         methodParameters = new MethodParameter[parameterCount];
