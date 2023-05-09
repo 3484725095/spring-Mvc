@@ -128,11 +128,7 @@ public class MvcContext {
         if (webMvcConfigurers.size() > 1) {
             throw new IllegalStateException("配置器应该只写一个");
         }
-        if(webMvcConfigurers.size()==0){
-            return new WebMvcConfigurer(){};
-        }
-
-        return webMvcConfigurers.get(0);
+        return webMvcConfigurers.size() == 0 ? new WebMvcConfigurer() {} : webMvcConfigurers.get(0);
     }
 
 

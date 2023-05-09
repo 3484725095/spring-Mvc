@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * 总控制器，负责分发任务，找到相应的处理器
@@ -33,7 +34,7 @@ public class DispatcherServlet extends HttpServlet {
     private List<HandlerAdapter> handlerAdapters = new ArrayList<>();
     private List<MethodArgumentResolver> argumentResolvers = new ArrayList<>();
     private List<HandlerExceptionResolver> exceptionResolvers = new ArrayList<>();
-    private final CorsConfiguration corsConfiguration = new CorsConfiguration();
+    private final CorsConfiguration corsConfiguration = CorsConfiguration.defaultInstance();
 
     @Override
     public void init(ServletConfig config) throws ServletException {
@@ -57,58 +58,47 @@ public class DispatcherServlet extends HttpServlet {
     }
 
     private void configMvc() {
-        configArgumentResolvers();
-        configHandlerMappings();
-        configHandlerAdapters();
-        configExceptionResolvers();
-        configGlobalCors();
-    }
-
-    public void configGlobalCors() {
         MvcContext mvcContext = MvcContext.getMvcContext();
         WebMvcConfigurer mvcConfigurer = mvcContext.getWebMvcConfigurers();
-        mvcConfigurer.configureCors(corsConfiguration);
+        if (mvcConfigurer == null) {
+            return;
+        }
+
+        //由于这些配置方法子类可以重写，所以给这些方法都设置了参数，便于重写，是可以不用添加任何参数的
+        configArgumentResolvers(MvcContext.getMvcContext().getArgumentResolvers(), mvcConfigurer);
+        configHandlerMappings(MvcContext.getMvcContext().getHandlerMappings(), mvcConfigurer);
+        configHandlerAdapters(MvcContext.getMvcContext().getHandlerAdapters(), mvcConfigurer);
+        configExceptionResolvers(MvcContext.getMvcContext().getExceptionResolvers(), mvcConfigurer);
+        //由于corsConfiguration对象是有了默认值设置的实例，没有配置器的时候不配置cors也能用默认设置处理跨域
+        configGlobalCors(this.corsConfiguration, mvcConfigurer);
     }
 
-    private void configExceptionResolvers() {
-        MvcContext mvcContext = MvcContext.getMvcContext();
-        WebMvcConfigurer webMvcConfigurer = mvcContext.getWebMvcConfigurers();
-
-        for (HandlerExceptionResolver exceptionResolver : mvcContext.getExceptionResolvers()) {
-            webMvcConfigurer.configureExceptionResolver(exceptionResolver);
-        }
-//        configure(MvcContext.getMvcContext().getExceptionResolvers(), HandlerExceptionResolver.class);
+    protected void configGlobalCors(CorsConfiguration configuration, WebMvcConfigurer mvcConfigurer) {
+        // 先设定默认设置，如果用户不需要这些默认设置，可以调用clearDefaultConfiguration方法进行清除
+        configuration.applyDefaultConfiguration();
+        mvcConfigurer.configureCors(configuration);
+        // mvcConfigurer.configureCors(configuration) 这行代码你也可以换成像下面这样写
+        // executeMvcComponentsConfig(Arrays.asList(configuration),mvcConfigurer::configureCors);
     }
 
-    private void configHandlerAdapters() {
-        MvcContext mvcContext = MvcContext.getMvcContext();
-        WebMvcConfigurer webMvcConfigurer = mvcContext.getWebMvcConfigurers();
-
-        for (HandlerAdapter handlerAdapter : mvcContext.getHandlerAdapters()) {
-            webMvcConfigurer.configureHandlerAdapter(handlerAdapter);
-        }
-//        configure(MvcContext.getMvcContext().getHandlerAdapters(), HandlerAdapter.class);
+    protected void configArgumentResolvers(List<MethodArgumentResolver> argumentResolvers, WebMvcConfigurer mvcConfigurer) {
+        executeMvcComponentsConfig(argumentResolvers, mvcConfigurer::configureArgumentResolver);
     }
 
-    private void configArgumentResolvers() {
-        MvcContext mvcContext = MvcContext.getMvcContext();
-        WebMvcConfigurer webMvcConfigurers = mvcContext.getWebMvcConfigurers();
-
-        for (MethodArgumentResolver argumentResolver : mvcContext.getArgumentResolvers()) {
-            webMvcConfigurers.configureArgumentResolver(argumentResolver);
-        }
-//        configure(MvcContext.getMvcContext().getArgumentResolvers(), MethodArgumentResolver.class);
+    protected void configHandlerMappings(List<HandlerMapping> handlerMappings, WebMvcConfigurer mvcConfigurer) {
+        executeMvcComponentsConfig(handlerMappings, mvcConfigurer::configureHandlerMapping);
     }
 
-    private void configHandlerMappings() {
-        MvcContext mvcContext = MvcContext.getMvcContext();
-        WebMvcConfigurer webMvcConfigurers = mvcContext.getWebMvcConfigurers();
+    protected void configHandlerAdapters(List<HandlerAdapter> handlerAdapters, WebMvcConfigurer mvcConfigurer) {
+        executeMvcComponentsConfig(handlerAdapters, mvcConfigurer::configureHandlerAdapter);
+    }
 
-        List<HandlerMapping> handlerMappings = mvcContext.getHandlerMappings();
-        for (HandlerMapping handlerMapping : handlerMappings) {
-            webMvcConfigurers.configureHandlerMapping(handlerMapping);
-        }
-//        configure(MvcContext.getMvcContext().getHandlerMappings(), HandlerMapping.class);
+    protected void configExceptionResolvers(List<HandlerExceptionResolver> exceptionResolvers, WebMvcConfigurer mvcConfigurer) {
+        executeMvcComponentsConfig(exceptionResolvers, mvcConfigurer::configureExceptionResolver);
+    }
+
+    private <T> void executeMvcComponentsConfig(List<T> mvcComponents, Consumer<T> consumer) {
+        mvcComponents.forEach(consumer);
     }
 
     /**

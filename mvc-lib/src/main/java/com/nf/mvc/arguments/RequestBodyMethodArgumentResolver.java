@@ -42,7 +42,7 @@ public class RequestBodyMethodArgumentResolver implements MethodArgumentResolver
     @Override
     public Object resolveArgument(MethodParameter parameter, HttpServletRequest req) throws Exception {
         //首先获取参数类型
-        Class<?> parameterType = parameter.getParameterType();
+        Class<?> parameterType = parameter.getParamType();
         //通过一个方法判断这个参数类型是List或者Set类型
         if (isListOrSet(parameterType)) {
             //通过获取参数最终获取到ParameterizedType该对象表示一个参数化类型，即形如List<String>、Map<Integer, String>之类的类型。

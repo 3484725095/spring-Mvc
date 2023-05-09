@@ -53,7 +53,7 @@ public class HandlerMethodArgumentResolverComposite implements MethodArgumentRes
     public Object resolveArgument(MethodParameter parameter, HttpServletRequest req) throws Exception {
         MethodArgumentResolver argumentResolver = getArgumentResolver(parameter);
         if (argumentResolver == null) {
-            throw new IllegalArgumentException("不支持的参数类型 [" + parameter.getParameterType() + "]. supportsParameter 方法应该先调用");
+            throw new IllegalArgumentException("不支持的参数类型 [" + parameter.getParamType() + "]. supportsParameter 方法应该先调用");
         }
         return argumentResolver.resolveArgument(parameter, req);
     }

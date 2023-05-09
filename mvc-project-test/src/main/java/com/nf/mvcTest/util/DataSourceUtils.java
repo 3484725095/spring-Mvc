@@ -1,4 +1,4 @@
-package mvcTest.com.nf.util;
+package com.nf.mvcTest.util;
 
 import com.alibaba.druid.pool.DruidDataSourceFactory;
 

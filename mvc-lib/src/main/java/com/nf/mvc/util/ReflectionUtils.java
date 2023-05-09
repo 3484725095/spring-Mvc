@@ -6,6 +6,8 @@ import javassist.bytecode.LocalVariableAttribute;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URL;
 import java.time.LocalDate;
@@ -197,5 +199,15 @@ public abstract class ReflectionUtils {
 
     public static boolean isSimpleTypeCollection(Class<?> collectionType, Class<?> actualTypeParam) {
         return isSimpleCollection(collectionType) && isSimpleType(actualTypeParam);
+    }
+
+    public static Class[] getActualArgument(Parameter parameter) {
+        ParameterizedType parameterizedType = (ParameterizedType) parameter.getParameterizedType();
+        Type[] types = parameterizedType.getActualTypeArguments();
+        Class[] actualTypeArguments = new Class[types.length];
+        for (int i = 0; i < types.length; i++) {
+            actualTypeArguments[i] = (Class) types[i];
+        }
+        return actualTypeArguments;
     }
 }

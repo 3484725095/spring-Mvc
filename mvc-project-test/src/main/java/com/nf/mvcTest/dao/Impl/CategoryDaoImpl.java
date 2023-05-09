@@ -1,24 +1,21 @@
-package mvcTest.com.nf.dao.Impl;
+package com.nf.mvcTest.dao.Impl;
 
-import com.nf.dbutils.ResultSetHandler;
 import com.nf.dbutils.SqlExecutor;
 import com.nf.dbutils.SqlExecutorEx;
-import com.nf.dbutils.handlers.ArrayListHandler;
 import com.nf.dbutils.handlers.BeanListHandler;
-import mvcTest.com.nf.dao.CategoryDao;
-import mvcTest.com.nf.entity.Category;
-import mvcTest.com.nf.util.DataSourceUtils;
+import com.nf.mvcTest.entity.Category;
+import com.nf.mvcTest.util.DataSourceUtils;
+import com.nf.mvcTest.dao.CategoryDao;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class CategoryDaoImpl implements CategoryDao {
     SqlExecutor sqlExecutor = new SqlExecutorEx(DataSourceUtils.getDataSource());
 
     @Override
-    public int insert(Category category) {
+    public int insert(String name) {
         String sql = "insert into category(name) values(?)";
-        return sqlExecutor.update(sql, category.getName());
+        return sqlExecutor.update(sql, name);
     }
 
     @Override
@@ -32,9 +29,9 @@ public class CategoryDaoImpl implements CategoryDao {
     }
 
     @Override
-    public int update(Category category) {
+    public int update(int id, String name) {
         String sql = "update category set name=? where cid=?";
-        return sqlExecutor.update(sql, category.getName(), category.getCid());
+        return sqlExecutor.update(sql, name, id);
     }
 
     @Override

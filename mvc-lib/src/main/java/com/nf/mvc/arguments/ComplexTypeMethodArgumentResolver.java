@@ -9,12 +9,12 @@ import javax.servlet.http.HttpServletRequest;
 public class ComplexTypeMethodArgumentResolver implements MethodArgumentResolver {
     @Override
     public boolean supports(MethodParameter parameter) {
-        return ReflectionUtils.isComplexProperty(parameter.getParameterType());
+        return ReflectionUtils.isComplexProperty(parameter.getParamType());
     }
 
     @Override
     public Object resolveArgument(MethodParameter parameter, HttpServletRequest req) throws Exception {
-        Object instance = ReflectionUtils.newInstance(parameter.getParameterType());
+        Object instance = ReflectionUtils.newInstance(parameter.getParamType());
         BeanUtils.populate(instance, req.getParameterMap());
         return instance;
     }

@@ -11,7 +11,7 @@ import javax.servlet.http.HttpSession;
 public class ServletApiMethodArgumentResolver implements MethodArgumentResolver {
     @Override
     public boolean supports(MethodParameter parameter) {
-        Class<?> paramType = parameter.getParameterType();
+        Class<?> paramType = parameter.getParamType();
         return HttpServletRequest.class.isAssignableFrom(paramType) || HttpServletResponse.class.isAssignableFrom(paramType) || HttpSession.class.isAssignableFrom(paramType) || ServletContext.class.isAssignableFrom(paramType);
     }
 
@@ -27,7 +27,7 @@ public class ServletApiMethodArgumentResolver implements MethodArgumentResolver 
      */
     @Override
     public Object resolveArgument(MethodParameter parameter, HttpServletRequest request) throws Exception {
-        Class<?> paramType = parameter.getParameterType();
+        Class<?> paramType = parameter.getParamType();
         HandlerContext context = HandlerContext.getContext();
         if (HttpServletRequest.class.isAssignableFrom(paramType)) {
             return request;

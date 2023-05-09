@@ -66,6 +66,12 @@ public class CorsConfiguration {
         return this;
     }
 
+    public static CorsConfiguration defaultInstance() {
+        CorsConfiguration corsConfiguration = new CorsConfiguration();
+        corsConfiguration.applyDefaultConfiguration();
+        return corsConfiguration;
+    }
+
     public void applyDefaultConfiguration() {
         setAllowedOrigins(ALL);
         setAllowCredentials(false);

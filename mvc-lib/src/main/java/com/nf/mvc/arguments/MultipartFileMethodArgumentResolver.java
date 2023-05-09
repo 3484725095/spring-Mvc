@@ -1,9 +1,7 @@
 package com.nf.mvc.arguments;
 
-import com.nf.mvc.MethodArgumentResolver;
 import com.nf.mvc.file.MultipartFile;
 import com.nf.mvc.file.StandardMultipartFile;
-import com.nf.mvc.util.FileCopyUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -13,56 +11,57 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class MultipartFileMethodArgumentResolver implements MethodArgumentResolver {
+public class MultipartFileMethodArgumentResolver extends AbstractCommonTypeMethodArgumentResolver {
     @Override
-    public boolean supports(MethodParameter parameter) {
-        Class<?> paramType = parameter.getParameterType();
-        return isFileType(paramType)
-                || (paramType.isArray() && isFileType(paramType.getComponentType()));
+    protected boolean supportsInternal(Class<?> type) {
+        return isFileType(type);
     }
 
-    private boolean isFileType(Class<?> fileType) {
+    @Override
+    protected Object resolveArgumentInternal(Class<?> type, Object parameterValue, MethodParameter methodParameter) throws Exception {
+        //压根没有上传数据时，parameterValue就是null，这个时候直接返回null即可
+        if (parameterValue == null) {
+            return null;
+        }
+
+        return handleSingleFile((Part) parameterValue, type);
+    }
+
+    @Override
+    protected Object[] getSource(MethodParameter methodParameter, HttpServletRequest request) {
+        Object[] source = null;
+        try {
+            List<Part> matchedParts = new ArrayList<>();
+            Collection<Part> parts = request.getParts();
+            for (Part part : parts) {
+                if (part.getName().equals(methodParameter.getParamName())) {
+                    matchedParts.add(part);
+                }
+            }
+            source = matchedParts.toArray();
+        } catch (IOException | ServletException e) {
+            //这里不抛出异常，什么也不干，相当于返回null，针对的一种场景是：比如修改商品记录不牵涉到图片的修改，
+            //那么文件类型的参数就直接赋值为null即可，抛异常的话会中断控制器方法的执行
+        }
+        return source;
+    }
+
+    protected boolean isFileType(Class<?> fileType) {
         return Part.class == fileType ||
                 MultipartFile.class == fileType;
     }
 
-    @Override
-    public Object resolveArgument(MethodParameter parameter, HttpServletRequest request) throws Exception {
-        Class<?> paramType = parameter.getParameterType();
-        String paramName = parameter.getParamName();
-        if (paramType.isArray()) {
-            return handleMultiFile(request.getParts(), paramType.getComponentType());
-        } else {
-            return handleSingleFile(request.getPart(paramName), paramType);
-        }
-
-    }
-
-    private <T> List<T> handleMultiFile(Collection<Part> parts, Class<T> fileType) throws IOException, ServletException {
-
-        List<T> files = new ArrayList<>();
-        for (Part part : parts) {
-            handleSingleFile(part, fileType);
-        }
-        return files;
-    }
-
-    private <T> T handleSingleFile(Part part, Class<T> paramType) throws IOException, ServletException {
-
+    protected <T> T handleSingleFile(Part part, Class<T> paramType) {
         if (Part.class == paramType) {
             return (T) part;
         } else {
-            String disposition = part.getHeader(FileCopyUtils.CONTENT_DISPOSITION);
-            String filename = getFileName(disposition);
-            StandardMultipartFile multipartFile = new StandardMultipartFile(part, filename);
-            return (T) multipartFile;
+            return (T) new StandardMultipartFile(part, getFileName(part));
         }
-
     }
 
-    private String getFileName(String disposition) {
-        String fileName = disposition.substring(disposition.indexOf("filename=\"") + 10, disposition.lastIndexOf("\""));
-        System.out.println(fileName);
-        return fileName;
+    protected String getFileName(Part part) {
+        return part.getSubmittedFileName();
     }
+
 }
+

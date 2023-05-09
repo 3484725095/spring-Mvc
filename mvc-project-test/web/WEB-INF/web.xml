@@ -8,7 +8,7 @@
         <servlet-class>com.nf.mvc.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>base-package</param-name>
-            <param-value>mvcTest.com.nf</param-value>
+            <param-value>com.nf.mvcTest.web</param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>
         <multipart-config>

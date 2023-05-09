@@ -1,4 +1,4 @@
-package mvcTest.com.nf.entity;
+package com.nf.mvcTest.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

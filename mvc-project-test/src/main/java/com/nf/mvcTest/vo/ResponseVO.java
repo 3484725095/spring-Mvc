@@ -1,4 +1,4 @@
-package mvcTest.com.nf.vo;
+package com.nf.mvcTest.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
