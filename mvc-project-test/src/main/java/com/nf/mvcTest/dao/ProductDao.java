@@ -14,5 +14,7 @@ public interface ProductDao {
 
     int delete(int id);
 
-    List<Product> page(int pageNo, int pageSize);
+    List<Product> page(String name, int pageNo, int pageSize);
+
+    int total(String name);
 }

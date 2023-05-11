@@ -1,5 +1,6 @@
 package com.nf.mvcTest.entity;
 
+import com.nf.mvc.file.MultipartFile;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,7 +17,9 @@ public class Product {
     private String name;
     private String image;
     private BigDecimal price;
-    private byte status;
+    private Boolean status;
     private Integer quantity;
     private Integer cid;
+    private MultipartFile multipartFile;
+    private String typeName;
 }

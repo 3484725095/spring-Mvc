@@ -3,10 +3,11 @@ package com.nf.mvcTest.service;
 import com.nf.mvc.arguments.RequestBody;
 import com.nf.mvcTest.entity.Product;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface ProductService {
-    int insert(@RequestBody Product product);
+    int insert(@RequestBody Product product) throws IOException;
 
     List<Product> getAll();
 
@@ -14,5 +15,6 @@ public interface ProductService {
 
     int delete(int id);
 
-    List<Product> page(int pageNo, int pageSize);
+    List<Product> page(String name, int pageNo, int pageSize);
+    int total(String name);
 }

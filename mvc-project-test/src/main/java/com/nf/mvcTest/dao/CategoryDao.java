@@ -13,4 +13,5 @@ public interface CategoryDao {
     int update(int id, String name);
 
     int delete(int id);
+
 }

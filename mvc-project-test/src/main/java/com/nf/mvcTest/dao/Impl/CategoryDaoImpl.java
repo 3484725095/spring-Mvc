@@ -2,6 +2,7 @@ package com.nf.mvcTest.dao.Impl;
 
 import com.nf.dbutils.SqlExecutor;
 import com.nf.dbutils.SqlExecutorEx;
+import com.nf.dbutils.handlers.BeanHandler;
 import com.nf.dbutils.handlers.BeanListHandler;
 import com.nf.mvcTest.entity.Category;
 import com.nf.mvcTest.util.DataSourceUtils;

@@ -29,4 +29,5 @@ public class CategoryServiceImpl implements CategoryService {
     public int delete(int id) {
         return categoryDao.delete(id);
     }
+
 }
